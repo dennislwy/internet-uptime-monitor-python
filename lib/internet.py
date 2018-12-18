@@ -1,4 +1,5 @@
 import logging
+from random import shuffle
 from httplib import HTTPConnection, socket
 
 class Internet(object):
@@ -13,7 +14,9 @@ class Internet(object):
         """
         try:
             if urls is None:
-                urls = ["www.google.com", 'www.yahoo.com', 'www.facebook.com']
+                urls = ["www.google.com", 'www.yahoo.com', 'www.facebook.com', 'www.amazon.com']
+
+            shuffle(urls) # randomly shuffle urls so we don't keep spamming same site all the time
 
             for i in range(len(urls)):
                 if self._get_site_status(urls[i]):
