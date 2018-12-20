@@ -44,7 +44,7 @@ def onStateChanged(sender, available):
 
         log.info(title)
 
-        if INCLUDE_IPADDRESS: body += ". Internal IP: %s, External IP: %s" % (internet.InternalIp(), internet.ExternalIp())
+        if INCLUDE_IPADDRESS: body += "\nInternal IP: %s, External IP: %s" % (internet.InternalIp(), internet.ExternalIp())
 
         # notify all of the services loaded into our Apprise object
         _sendNotification(title, body)
@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     # application started
     body = "Application started since %s" % _trimDateTimeLeadingZero(datetime.now().strftime("%d/%m/%y %I:%M:%S%p"))
-    if INCLUDE_IPADDRESS: body += ". Internal IP: %s, External IP: %s" % (internet.InternalIp(), internet.ExternalIp())
+    if INCLUDE_IPADDRESS: body += "\nInternal IP: %s, External IP: %s" % (internet.InternalIp(), internet.ExternalIp())
     _sendNotification("Internet Uptime Monitor started", body)
 
     main()
