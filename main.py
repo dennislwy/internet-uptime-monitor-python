@@ -1,18 +1,19 @@
 import os
 import time
 import signal
+import logging.handlers
 import logging.config
 import apprise
 from ago import human
 from datetime import datetime
 from ConfigParser import SafeConfigParser
-from lib.internet import Internet
+import internet
 
 def main():
     try:
         while True:
-            internet.Reachable(SITES)
-            #log.debug("Internet %s for %s" % (("up" if internet.State else "down"), human(internet.Duration, 2, past_tense='{0}')))
+            connection.is_online()
+            #log.debug("Internet %s for %s" % (("up" if connection.state else "down"), human(connection.duration, 2, past_tense='{0}')))
             time.sleep(REFRESH)
 
     except KeyboardInterrupt:
@@ -23,33 +24,33 @@ def main():
 
 #region Events
 
-def onStateChanged(sender, available):
-    if available:
+def onStateChange(sender, state):
+    if state == connection.ONLINE:
         log.debug("Internet is up")
 
-        diff = sender.UpSince - sender.DownSince
+        diff = sender.online_since - sender.offline_since
 
         # if downtime was less than a day, no need include date in the message body
         if diff.days < 1:
             precision = 2 if diff.total_seconds() > 60 else 1
             title = "Internet resumed, it was down for %s" % human(diff, precision, past_tense='{0}')
             body = "Internet resumed back at %s, it was down since %s for %s" % \
-                   (_trimDateTimeLeadingZero(sender.UpSince.strftime("%I:%M:%S%p")),
-                    _trimDateTimeLeadingZero(sender.DownSince.strftime("%I:%M:%S%p")), human(diff, precision, past_tense='{0}'))
+                   (_trimDateTimeLeadingZero(sender.online_since.strftime("%I:%M:%S%p")),
+                    _trimDateTimeLeadingZero(sender.offline_since.strftime("%I:%M:%S%p")), human(diff, precision, past_tense='{0}'))
         else:
             title = "Internet resumed, it was down for %s" % human(diff, 3, past_tense='{0}')
             body = "Internet resumed on %s, it was down since %s for %s" % \
-                   (_trimDateTimeLeadingZero(sender.UpSince.strftime("%d/%m/%y %I:%M:%S%p")),
-                    _trimDateTimeLeadingZero(sender.DownSince.strftime("%d/%m/%y %I:%M:%S%p")), human(diff, 3, past_tense='{0}'))
+                   (_trimDateTimeLeadingZero(sender.online_since.strftime("%d/%m/%y %I:%M:%S%p")),
+                    _trimDateTimeLeadingZero(sender.offline_since.strftime("%d/%m/%y %I:%M:%S%p")), human(diff, 3, past_tense='{0}'))
 
         log.info(title)
 
-        if INCLUDE_IPADDRESS: body += "\nInternal IP: %s, External IP: %s" % (internet.InternalIp(), internet.ExternalIp())
+        if INCLUDE_IPADDRESS: body += "\nInternal IP: %s, External IP: %s" % (sender.ip(), sender.external_ip())
 
         # notify all of the services loaded into our Apprise object
         _sendNotification(title, body)
     else:
-        log.info("Internet is down since %s" % sender.DownSince.strftime("%I:%M:%S%p"))
+        log.info("Internet is down since %s" % sender.offline_since.strftime("%I:%M:%S%p"))
 
 def onTerminate(signum, frame):
     log.info("Application terminated (OS shutdown/reboot)")
@@ -69,12 +70,9 @@ def _addNotificationService(cfgParser):
             apobj.add("%s://%s" % (option, value))
 
 def _sendNotification(title, body=None):
-    if body is None: body=title
-
-    apobj.notify(
-        title=title,
-        body=body,
-    )
+    if body is None: body = title
+    log.debug("Send out notification, '%s'" % body)
+    apobj.notify(title=title, body=body)
 
 def _trimDateTimeLeadingZero(dt):
     return dt.lstrip("0").replace(" 0", " ")
@@ -108,7 +106,9 @@ if __name__ == "__main__":
     log.info("Starting Internet Uptime Monitor%s" % (' (DEBUG mode)' if DEBUG else ''))
     # endregion
 
-    internet = Internet(onStateChanged)
+    # create internet connection monitor instance
+    connection = internet.Connection(SITES)
+    connection.on_change = onStateChange
 
     # Python detect linux shutdown and run a command before shutting down
     # credits to code_onkel
@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     # application started
     body = "Application started since %s" % _trimDateTimeLeadingZero(datetime.now().strftime("%d/%m/%y %I:%M:%S%p"))
-    if INCLUDE_IPADDRESS: body += "\nInternal IP: %s, External IP: %s" % (internet.InternalIp(), internet.ExternalIp())
+    if INCLUDE_IPADDRESS: body += "\nInternal IP: %s, External IP: %s" % (connection.ip(), connection.external_ip())
     _sendNotification("Internet Uptime Monitor started", body)
 
     main()
