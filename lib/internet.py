@@ -1,4 +1,5 @@
 import logging
+import commands
 from datetime import datetime
 from random import shuffle
 from httplib import HTTPConnection, socket
@@ -68,7 +69,7 @@ class Internet(object):
         return False  # either internet is down or the world has ended
 
     def ExternalIp(self):
-        """Get external IP (public IP)"""
+        """Get external IP address (public IP address)"""
         try:
             # randomly shuffle urls so we don't keep spamming same site all the time
             shuffle(self._externalIpProviders)
@@ -82,6 +83,10 @@ class Internet(object):
         except Exception as e:
             self.log.error(e, exc_info=True)
         return None
+
+    def InternalIp(self):
+        """Get internal IP address"""
+        return commands.getoutput('hostname -I').rstrip()
 
     @property
     def State(self):

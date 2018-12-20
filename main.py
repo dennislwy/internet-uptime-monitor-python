@@ -22,6 +22,7 @@ def main():
         log.error(e, exc_info=True)
 
 #region Events
+
 def onStateChanged(sender, available):
     if available:
         log.debug("Internet is up")
@@ -43,18 +44,16 @@ def onStateChanged(sender, available):
 
         log.info(title)
 
-        if EXTERNALIP: body += ". External IP: %s" % internet.ExternalIp()
+        if INCLUDE_IPADDRESS: body += ". Internal IP: %s, External IP: %s" % (internet.InternalIp(), internet.ExternalIp())
 
         # notify all of the services loaded into our Apprise object
-        apobj.notify(
-            title=title,
-            body=body,
-        )
+        _sendNotification(title, body)
     else:
         log.info("Internet is down since %s" % sender.DownSince.strftime("%I:%M:%S%p"))
 
 def onTerminate(signum, frame):
     log.info("Application terminated (OS shutdown/reboot)")
+    _sendNotification("Internet Uptime Monitor terminated")
     exit(1)
 
 #endregion
@@ -68,6 +67,14 @@ def _addNotificationService(cfgParser):
         if value:
             log.debug("Adding services '%s://%s'" % (option, value))
             apobj.add("%s://%s" % (option, value))
+
+def _sendNotification(title, body=None):
+    if body is None: body=title
+
+    apobj.notify(
+        title=title,
+        body=body,
+    )
 
 def _trimDateTimeLeadingZero(dt):
     return dt.lstrip("0").replace(" 0", " ")
@@ -83,7 +90,7 @@ if __name__ == "__main__":
     DEBUG = cfgParser.getboolean('debugging', 'debug')
     SITES = [x.strip() for x in cfgParser.get('availability', 'sites').split(',')]
     REFRESH = cfgParser.getint('availability', 'refresh')
-    EXTERNALIP = cfgParser.getboolean('general', 'include_external_ip')
+    INCLUDE_IPADDRESS = cfgParser.getboolean('general', 'include_ipaddress')
 
     # region logging
     # initialize logging
@@ -116,10 +123,7 @@ if __name__ == "__main__":
 
     # application started
     body = "Application started since %s" % _trimDateTimeLeadingZero(datetime.now().strftime("%d/%m/%y %I:%M:%S%p"))
-    if EXTERNALIP: body += ". External IP: %s" % internet.ExternalIp()
-    apobj.notify(
-        title="Internet Uptime Monitor started",
-        body=body,
-    )
+    if INCLUDE_IPADDRESS: body += ". Internal IP: %s, External IP: %s" % (internet.InternalIp(), internet.ExternalIp())
+    _sendNotification("Internet Uptime Monitor started", body)
 
     main()
