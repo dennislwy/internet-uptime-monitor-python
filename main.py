@@ -7,7 +7,7 @@ import apprise
 from ago import human
 from datetime import datetime
 from ConfigParser import SafeConfigParser
-import internet
+import internet_connection
 
 def main():
     try:
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     # endregion
 
     # create internet connection monitor instance
-    connection = internet.Connection(SITES)
+    connection = internet_connection.Connection(SITES)
     connection.on_change = onStateChange
 
     # Python detect linux shutdown and run a command before shutting down
