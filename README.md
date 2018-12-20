@@ -1,2 +1,2 @@
-# net-uptime-monitor-python
+# internet-uptime-monitor-python
 Internet uptime monitor
