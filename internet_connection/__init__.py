@@ -79,7 +79,7 @@ class Connection(object):
         Get internal IP address
         :return: Internet IP address
         """
-        return commands.getoutput('hostname -I').rstrip()
+        return commands.getoutput('hostname -I').split(" ")[0]
 
     def external_ip(self):
         """
